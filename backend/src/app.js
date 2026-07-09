@@ -1,6 +1,7 @@
 import express from 'express';
 import { logger } from './middleware/logger.middleware.js';
-import healthRoutes from './routes/health.routes.js'
+import healthRoutes from './routes/health.routes.js';
+
 
 const app = express();
 
