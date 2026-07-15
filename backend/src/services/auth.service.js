@@ -1,4 +1,6 @@
-    import User from "../models/user.model.js";
+import User from "../models/user.model.js";
+import { generateVerificationToken, hashToken } from "../utils/token.util.js";
+import { sendVerificationEmail } from "./email.service.js";
 
     export const createUser = async (userData) => {
         const { name, email, password } = userData;
@@ -6,11 +8,42 @@
         if (existingUser) {
             throw new Error("This email is already registered.");
         }
-        const newUser = await User.create({
+
+        const verificationToken = generateVerificationToken();
+        const hashedVerificationToken = hashToken(verificationToken);
+        const verificationTokenExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+        const user = await User.create({
             name,
             email,
-            password
+            password,
+            verificationToken: hashedVerificationToken,
+            verificationTokenExpires,
         });
 
-        return newUser;
+        await sendVerificationEmail(user, verificationToken);
+
+        return user;
+}
+    
+    export const verifyEmail = async (token) => {
+        const hashedToken = hashToken(token);
+        const user = await User.findOne({
+            verificationToken: hashedToken,
+            verificationTokenExpires: {
+                $gt: new Date()
+            }
+        })
+
+        if (!user) {
+            throw new Error("Invalid or expired verification token");
+        }
+
+        user.isEmailVerified = true;
+        user.verificationToken = null;
+        user.verificationTokenExpires = null;
+
+        await user.save();
+        
+        return user;
     }

@@ -1,5 +1,5 @@
 import { createUser } from "../services/auth.service.js"
-
+import {verifyEmail as verifyEmailService,} from "../services/auth.service.js";
 export const signUp = async(req,res) => {
     try {
         await createUser(req.body);
@@ -13,5 +13,21 @@ export const signUp = async(req,res) => {
             success: false,
             message: err.message
         })
+    }
+}
+
+export const verifyEmail = async (req, res) => {
+    try {
+        await verifyEmailService(req.body.token);
+        return res.status(200).json({
+            success: true,
+            message: "Email verified successfully."
+        });
+    }
+    catch { error } {
+        return res.status(400).json({
+            success: false,
+            message: err.message
+        });
     }
 }
