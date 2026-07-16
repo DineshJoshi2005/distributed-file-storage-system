@@ -46,4 +46,26 @@ import { sendVerificationEmail } from "./email.service.js";
         await user.save();
         
         return user;
+}
+    
+export const resendVerificationEmail = async (email) => {
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new Error("User doesn't exist.");
     }
+    if (user.isEmailVerified) {
+        throw new Error("User is already verified");
+    }
+    const verificationToken = generateVerificationToken();
+    const hashedVerificationToken = hashToken(verificationToken);
+    const verificationTokenExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+    user.verificationToken = hashedVerificationToken;
+    user.verificationTokenExpires = verificationTokenExpires;
+
+    await user.save();
+
+    await sendVerificationEmail(user, verificationToken);
+
+    return user;
+}

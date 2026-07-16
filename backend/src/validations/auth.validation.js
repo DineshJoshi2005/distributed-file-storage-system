@@ -22,3 +22,9 @@ export const verifyEmailSchema = z.object({
         .trim()
         .min(1, "Verification token is required.")
 });
+
+export const resendVerificationSchema = z.object({
+    email: z.
+        email("Invalid email address")
+        .transform((email) => email.toLowerCase())
+});

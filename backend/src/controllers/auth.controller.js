@@ -1,5 +1,5 @@
 import { createUser } from "../services/auth.service.js"
-import {verifyEmail as verifyEmailService,} from "../services/auth.service.js";
+import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService} from "../services/auth.service.js";
 export const signUp = async(req,res) => {
     try {
         await createUser(req.body);
@@ -24,7 +24,22 @@ export const verifyEmail = async (req, res) => {
             message: "Email verified successfully."
         });
     }
-    catch { error } {
+    catch ( err ) {
+        return res.status(400).json({
+            success: false,
+            message: err.message
+        });
+    }
+}
+
+export const resendVerificationEmail = async(req, res) => {
+    try {
+        await resendVerificationEmailService(req.body.email);
+        return res.status(200).json({
+            success: true,
+            message: "Verification Email sent."
+        });
+    } catch(err) {
         return res.status(400).json({
             success: false,
             message: err.message
