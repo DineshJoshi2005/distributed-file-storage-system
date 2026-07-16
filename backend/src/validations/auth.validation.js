@@ -28,3 +28,13 @@ export const resendVerificationSchema = z.object({
         email("Invalid email address")
         .transform((email) => email.toLowerCase())
 });
+
+export const loginSchema = z.object({
+    email: z
+        .email("Invalid email address")
+            .transform((email) => email.toLowerCase()),
+
+    password: z.string()
+                .min(8, "Password must be at least 8 characters.")
+                .max(100)
+})

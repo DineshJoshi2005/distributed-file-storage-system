@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import { generateVerificationToken, hashToken } from "../utils/token.util.js";
 import { sendVerificationEmail } from "./email.service.js";
+import  bcrypt  from 'bcrypt';
 
     export const createUser = async (userData) => {
         const { name, email, password } = userData;
@@ -66,6 +67,23 @@ export const resendVerificationEmail = async (email) => {
     await user.save();
 
     await sendVerificationEmail(user, verificationToken);
+
+    return user;
+}
+
+export const loginUser = async(email, password) => {
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new Error("Invalid email or password.");
+    }
+    if (!user.isEmailVerified) {
+        throw new Error("User is not verified");
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+        throw new Error("Invalid email or password.");
+    }
 
     return user;
 }

@@ -1,5 +1,5 @@
 import { createUser } from "../services/auth.service.js"
-import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService} from "../services/auth.service.js";
+import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService , loginUser} from "../services/auth.service.js";
 export const signUp = async(req,res) => {
     try {
         await createUser(req.body);
@@ -40,6 +40,22 @@ export const resendVerificationEmail = async(req, res) => {
             message: "Verification Email sent."
         });
     } catch(err) {
+        return res.status(400).json({
+            success: false,
+            message: err.message
+        });
+    }
+}
+
+export const login = async(req,res)=>{
+    try {
+        const { email, password } = req.body;
+        const user = await loginUser(email, password);
+        return res.status(200).json({
+            success: true,
+            message: "Login Successfull."
+        });
+    } catch (err) {
         return res.status(400).json({
             success: false,
             message: err.message
