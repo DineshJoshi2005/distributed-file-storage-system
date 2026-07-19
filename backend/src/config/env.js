@@ -15,6 +15,11 @@ const env = {
     SMTP_PASS: process.env.SMTP_PASS,
 
     CLIENT_URL: process.env.CLIENT_URL,
+
+    JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+    JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN,
+
+    REFRESH_TOKEN_EXPIRES_IN_DAYS: Number(process.env.REFRESH_TOKEN_EXPIRES_IN_DAYS)
 };
 
 export default env;

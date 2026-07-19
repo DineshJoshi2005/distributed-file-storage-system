@@ -1,5 +1,9 @@
 import { createUser } from "../services/auth.service.js"
-import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService , loginUser} from "../services/auth.service.js";
+import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService, loginUser, refreshAccessToken as refreshAccessTokenService } from "../services/auth.service.js";
+import env from "../config/env.js";
+import { StatusCodes } from "http-status-codes";
+import { refreshAccessToken } from './../services/auth.service';
+
 export const signUp = async(req,res) => {
     try {
         await createUser(req.body);
@@ -50,13 +54,74 @@ export const resendVerificationEmail = async(req, res) => {
 export const login = async(req,res)=>{
     try {
         const { email, password } = req.body;
-        const user = await loginUser(email, password);
+        const  {
+            user,
+            accessToken,
+            refreshToken,
+        } = await loginUser(email, password);
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: false,      
+            sameSite: "strict",
+            maxAge:
+                env.REFRESH_TOKEN_EXPIRES_IN_DAYS *
+                24 *
+                60 *
+                60 *
+                1000,
+        });
         return res.status(200).json({
             success: true,
-            message: "Login Successfull."
+            message: "Login successful.",
+            accessToken,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+            },
         });
     } catch (err) {
         return res.status(400).json({
+            success: false,
+            message: err.message
+        });
+    }
+}
+
+export const refreshAccessToken = async (req, res) => {
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) {
+            return res.status(StatusCodes.UNAUTHORIZED).json({
+                success: false,
+                message: "Refresh token is missing.",
+            });
+        }
+        const {
+            accessToken,
+            newRefreshToken
+        } = await refreshAccessTokenService(refreshToken);
+        res.cookie("refreshToken", newRefreshToken, {
+            httpOnly: true,
+            secure: env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge:
+                env.REFRESH_TOKEN_EXPIRES_IN_DAYS *
+                24 *
+                60 *
+                60 *
+                1000,
+        });
+        return res.status(200).json({
+            success: true,
+            message: "New Access Token Generated.",
+            accessToken,
+            
+        });
+    }
+    catch (err) {
+        return res.status(401).json({
             success: false,
             message: err.message
         });
