@@ -1,8 +1,8 @@
 import { createUser } from "../services/auth.service.js"
-import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService, loginUser, refreshAccessToken as refreshAccessTokenService } from "../services/auth.service.js";
+import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService, loginUser, refreshAccessToken as refreshAccessTokenService, logOut as logOutService } from "../services/auth.service.js";
 import env from "../config/env.js";
 import { StatusCodes } from "http-status-codes";
-import { refreshAccessToken } from './../services/auth.service';
+
 
 export const signUp = async(req,res) => {
     try {
@@ -119,6 +119,40 @@ export const refreshAccessToken = async (req, res) => {
             accessToken,
             
         });
+    }
+    catch (err) {
+        return res.status(401).json({
+            success: false,
+            message: err.message
+        });
+    }
+}
+
+export const getCurrentUser = (req, res) => {
+    return res.status(200).json({
+        user: req.user
+    })
+}
+
+export const logOut = async (req,res)=>{
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized"
+            })
+        }
+        await logOutService(refreshToken);
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: env.NODE_ENV === "production",
+            sameSite: "strict",
+        });
+        return res.status(200).json({
+            success: true,
+            message: "Logout Successfully."
+        })
     }
     catch (err) {
         return res.status(401).json({

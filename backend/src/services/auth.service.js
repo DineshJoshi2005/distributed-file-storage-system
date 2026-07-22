@@ -150,3 +150,14 @@ export const refreshAccessToken = async(refreshToken) => {
         newRefreshToken
     }
 }
+
+export const logOut = async (refreshToken) => {
+    const hashedToken = hashToken(refreshToken);
+    const result = await RefreshToken.deleteOne({
+        token: hashedToken
+    });
+
+    if (result.deletedCount === 0) {
+        throw new Error("Invalid refresh token");
+    }
+}
