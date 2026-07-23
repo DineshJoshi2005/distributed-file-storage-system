@@ -1,5 +1,7 @@
 import { createUser } from "../services/auth.service.js"
-import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService, loginUser, refreshAccessToken as refreshAccessTokenService, logOut as logOutService, logOutAll as logOutAllService } from "../services/auth.service.js";
+import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService, loginUser, refreshAccessToken as refreshAccessTokenService, logOut as logOutService, logOutAll as logOutAllService,
+forgotPassword as forgotPasswordService, resetPassword as resetPasswordService
+} from "../services/auth.service.js";
 import env from "../config/env.js";
 import { StatusCodes } from "http-status-codes";
 
@@ -185,6 +187,39 @@ export const logOutAllDevices = async (req, res) => {
         });
     } catch (err) {
         return res.status(401).json({
+            success: false,
+            message: err.message
+        });
+    }
+}
+
+export const forgotPassword = async (req, res)=>{
+    try {
+        const { email } = req.body;
+        const user = await forgotPasswordService(email);
+        return res.status(200).json({
+            success: true,
+            message: "If an account with that email exists, a password reset link has been sent."
+        })
+    }
+    catch (err) {
+        return res.status(401).json({
+            success: false,
+            message: err.message
+        });
+    }
+}
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        const user = await resetPasswordService(token, newPassword);
+        return res.status(200).json({
+            success: true,
+            message: "Password reset successfully"
+        })
+    } catch (err) {
+        return res.status(400).json({
             success: false,
             message: err.message
         });

@@ -1,7 +1,7 @@
     import User from "../models/user.model.js";
     import { generateAccessToken } from "../utils/jwt.util.js";
-    import { generateRefreshToken, generateVerificationToken, hashToken } from "../utils/token.util.js";
-    import { sendVerificationEmail } from "./email.service.js";
+    import { generateRefreshToken, generateSecureToken, hashToken } from "../utils/token.util.js";
+    import { sendPasswordResetEmail, sendVerificationEmail } from "./email.service.js";
     import RefreshToken from "../models/refresh-token.model.js";
     import env from "../config/env.js";
 
@@ -14,7 +14,7 @@
                 throw new Error("This email is already registered.");
             }
 
-            const verificationToken = generateVerificationToken();
+            const verificationToken = generateSecureToken();
             const hashedVerificationToken = hashToken(verificationToken);
             const verificationTokenExpires = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -61,7 +61,7 @@
         if (user.isEmailVerified) {
             throw new Error("User is already verified");
         }
-        const verificationToken = generateVerificationToken();
+        const verificationToken = generateSecureToken();
         const hashedVerificationToken = hashToken(verificationToken);
         const verificationTokenExpires = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -166,5 +166,44 @@
         await RefreshToken.deleteMany({
             user: userId
         })
+    }
+    
+    export const forgotPassword = async (email) => {
+        const user = await User.findOne({ email: email }).select("-password");
+        if (!user) {
+            return;
+        }
+        const resetPasswordToken = generateSecureToken();
+        const hashedResetPasswordToken = hashToken(resetPasswordToken);
         
+        const resetTokenExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+        user.resetPasswordToken = hashedResetPasswordToken;
+        user.resetPasswordExpires = resetTokenExpires;
+
+        await user.save()
+        await sendPasswordResetEmail(user, resetPasswordToken);
+
+        return user;
+    }
+    
+export const resetPassword = async (token, newPassword) => {
+    const hashedToken = hashToken(token);
+    const user = await User.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: {
+            $gt: new Date()
+        }
+    });
+    if (!user) {
+        throw new Error("Invalid or Expired Token.");
+    }
+    user.password = newPassword;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await RefreshToken.deleteMany({
+        user: user._id
+    })
+    await user.save();
+    return user;
     }
