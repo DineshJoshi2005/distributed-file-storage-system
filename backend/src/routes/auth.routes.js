@@ -1,5 +1,5 @@
 import express from "express";
-import { getCurrentUser, login, logOut, refreshAccessToken, resendVerificationEmail, signUp, verifyEmail } from "../controllers/auth.controller.js";
+import { getCurrentUser, login, logOut, logOutAllDevices, refreshAccessToken, resendVerificationEmail, signUp, verifyEmail } from "../controllers/auth.controller.js";
 import { validate } from "../middleware/validate.middleware.js";
 import { loginSchema, resendVerificationSchema, signUpSchema, verifyEmailSchema } from "../validations/auth.validation.js";
 import { authenticate } from "../middleware/auth.middleware.js";
@@ -13,4 +13,5 @@ router.post("/login", validate(loginSchema), login);
 router.post("/refresh-token", refreshAccessToken);
 router.get("/me", authenticate, getCurrentUser);
 router.post("/logout", logOut);
+router.post("/logout-all",authenticate, logOutAllDevices);
 export default router;

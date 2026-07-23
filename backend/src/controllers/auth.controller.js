@@ -1,7 +1,8 @@
 import { createUser } from "../services/auth.service.js"
-import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService, loginUser, refreshAccessToken as refreshAccessTokenService, logOut as logOutService } from "../services/auth.service.js";
+import { verifyEmail as verifyEmailService, resendVerificationEmail as resendVerificationEmailService, loginUser, refreshAccessToken as refreshAccessTokenService, logOut as logOutService, logOutAll as logOutAllService } from "../services/auth.service.js";
 import env from "../config/env.js";
 import { StatusCodes } from "http-status-codes";
+
 
 
 export const signUp = async(req,res) => {
@@ -155,6 +156,34 @@ export const logOut = async (req,res)=>{
         })
     }
     catch (err) {
+        return res.status(401).json({
+            success: false,
+            message: err.message
+        });
+    }
+}
+
+export const logOutAllDevices = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized"
+            })
+        }
+        await logOutAllService(userId);
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: env.NODE_ENV === "production",
+            sameSite: "strict",
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Logged out from all devices."
+        });
+    } catch (err) {
         return res.status(401).json({
             success: false,
             message: err.message
