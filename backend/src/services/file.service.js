@@ -16,10 +16,48 @@ const getOwnedFile = async (fileId, userId) => {
     return file;
 };
 
-export const uploadFile = async (userId, file)=>{
+const generateUniqueFileName = async (
+    userId,
+    originalName,
+    excludeFileId = null
+) => {
+    const { name, ext } = path.parse(originalName);
+
+    let counter = 0;
+
+    while (true) {
+        const candidateName =
+            counter === 0
+                ? `${name}${ext}`
+                : `${name} (${counter})${ext}`;
+
+        const query = {
+            owner: userId,
+            originalName: candidateName,
+        };
+
+        if (excludeFileId) {
+            query._id = { $ne: excludeFileId };
+        }
+
+        const existingFile = await File.findOne(query);
+
+        if (!existingFile) {
+            return candidateName;
+        }
+
+        counter++;
+    }
+};
+export const uploadFile = async (userId, file) => {
+    const uniqueFileName = await generateUniqueFileName(
+        userId,
+        file.originalname
+    );
+
     const uploadedFile = await File.create({
         owner: userId,
-        originalName: file.originalname,
+        originalName: uniqueFileName,
         storedName: file.filename,
         mimeType: file.detectedMime,
         size: file.size,
@@ -28,7 +66,7 @@ export const uploadFile = async (userId, file)=>{
     });
 
     return uploadedFile;
-}
+};
 
 export const getAllFiles = async (userId) => {
     const files = await File.find({
@@ -55,15 +93,21 @@ export const deleteFile = async (fileId, userId) => {
     return;
 }
 
-export const renameFile = async (fileId, userId, newName) => {
-    const file = await getOwnedFile(fileId, userId);
+export const renameFile = async (fileId,userId,newName) => {
+    const file = await findOwnedFileOrThrow(fileId, userId);
 
-    const originalExtension = path.extname(file.storedName);
-    const baseName = path.basename(newName.trim(), path.extname(newName));
+    const extension = path.extname(file.storedName);
+    const baseName = path.parse(newName.trim()).name;
 
-    file.originalName = `${baseName}${originalExtension}`;
+    const uniqueFileName = await generateUniqueFileName(
+        userId,
+        `${baseName}${extension}`,
+        file._id
+    );
+
+    file.originalName = uniqueFileName;
 
     await file.save();
 
     return file;
-}
+};
