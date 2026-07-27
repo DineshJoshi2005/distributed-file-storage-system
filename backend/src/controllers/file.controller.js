@@ -1,4 +1,6 @@
 import { getAllFiles, getFileById, uploadFile, downloadFile, deleteFile, renameFile } from "../services/file.service.js";
+import { shareFile as shareFileService, getSharedFiles as getSharedFilesService, updatePermission as updatePermissionService, revokeAccess as revokeAccessService} from "../services/file.service.js";
+
 
 export const upload = async (req, res) => {
     try {
@@ -103,6 +105,86 @@ export const rename = async (req, res) => {
             message: "File renamed successfully.",
             data: file,
         });
+    } catch (err) {
+        return res.status(400).json({
+            success: false,
+            message: err.message,
+        });
+    }
+};
+
+export const shareFile = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const ownerId = req.user._id;
+
+        const { email, permission } = req.body;
+
+        await shareFileService(id, ownerId, email, permission);
+
+        return res.status(200).json({
+            success: true,
+            message: "File shared successfully.",
+        });
+
+    } catch (err) {
+        return res.status(400).json({
+            success: false,
+            message: err.message,
+        });
+    }
+};
+
+export const getSharedFiles = async (req, res) => {
+    try {
+        const files = await getSharedFilesService(req.user._id);
+
+        return res.status(200).json({
+            success: true,
+            data: files,
+        });
+    } catch (err) {
+        return res.status(400).json({
+            success: false,
+            message: err.message,
+        });
+    }
+}
+
+export const updatePermission = async (req, res)=>{
+    try {
+        const fileId = req.params.id;
+        const ownerId = req.user._id;
+        const userId = req.params.userId;
+        const userPermission = req.body.permission;
+
+        const permission = await updatePermissionService(fileId, ownerId, userId, userPermission);
+
+        return res.status(200).json({
+            success: true,
+            message: "Permission updated successfully.",
+            data: permission,
+        });
+
+    } catch (err) {
+        return res.status(400).json({
+            success: false,
+            message: err.message,
+        });
+    }
+
+}
+
+export const revokeAccess = async (req, res) => {
+    try {
+        await revokeAccessService(req.params.id, req.user._id, req.params.userId);
+
+        return res.status(200).json({
+            success: true,
+            message: "Access revoked successfully.",
+        });
+
     } catch (err) {
         return res.status(400).json({
             success: false,

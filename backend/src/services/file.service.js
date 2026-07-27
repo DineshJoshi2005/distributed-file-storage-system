@@ -1,5 +1,7 @@
 import fs from "fs/promises"
 import File from "../models/file.model.js"
+import FilePermission from "../models/filePermission.model.js";
+import User from "../models/user.model.js"
 import path from "path";
 
 //Helper function to get File 
@@ -94,7 +96,7 @@ export const deleteFile = async (fileId, userId) => {
 }
 
 export const renameFile = async (fileId,userId,newName) => {
-    const file = await findOwnedFileOrThrow(fileId, userId);
+    const file = await getOwnedFile(fileId, userId);
 
     const extension = path.extname(file.storedName);
     const baseName = path.parse(newName.trim()).name;
@@ -110,4 +112,89 @@ export const renameFile = async (fileId,userId,newName) => {
     await file.save();
 
     return file;
+};
+
+export const shareFile = async (fileId,ownerId,email,permission) => {
+    const file = await File.findById(fileId);
+
+    if (!file) {
+        throw new Error("File not found.");
+    }
+
+    if (file.owner.toString() !== ownerId.toString()) {
+        throw new Error("Only the owner can share this file.");
+    }
+
+    const recipient = await User.findOne({ email });
+
+    if (!recipient) {
+        throw new Error("Recipient user not found.");
+    }
+
+    if (recipient._id.toString() === ownerId.toString()) {
+        throw new Error("You cannot share a file with yourself.");
+    }
+
+    const existingPermission = await FilePermission.findOne({
+        file: fileId,
+        user: recipient._id,
+    });
+
+    if (existingPermission) {
+        throw new Error("File already shared with this user.");
+    }
+
+    const filePermission = await FilePermission.create({
+        file: fileId,
+        user: recipient._id,
+        permission,
+    });
+
+    return filePermission;
+};
+
+export const getSharedFiles = async(userId)=> {
+    const permissions = await FilePermission.find({ user: userId }).populate("file");
+    const files = permissions.map((permission) => ({
+        ...permission.file.toObject(),
+        permission: permission.permission,
+    }));
+    return files;
+}   
+
+export const updatePermission = async(fileId, ownerId, userId, permission)=>{
+    await getOwnedFile(fileId, ownerId);
+
+    const filePermission = await FilePermission.findOne({
+        file: fileId,
+        user: userId,
+    });
+
+    if (!filePermission) {
+        throw new Error("Permission not found.");
+    }
+
+    if (filePermission.permission === permission) {
+        throw new Error(`User already has ${permission} permission.`);
+    }
+
+    filePermission.permission = permission;
+    await filePermission.save();
+    return filePermission;
+}
+
+export const revokeAccess = async (fileId, ownerId,userId) => {
+
+    await getOwnedFile(fileId, ownerId);
+
+    const filePermission = await FilePermission.findOne({
+        file: fileId,
+        user: userId,
+    });
+
+    if (!filePermission) {
+        throw new Error("Permission not found.");
+    }
+
+    await filePermission.deleteOne();
 };
